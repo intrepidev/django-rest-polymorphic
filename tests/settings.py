@@ -21,8 +21,25 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sites',
 
+    'rest_framework',
     'rest_polymorphic',
     'tests',
+]
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
 ]
 
 SITE_ID = 1

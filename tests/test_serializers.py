@@ -3,9 +3,10 @@ from django.core.exceptions import ImproperlyConfigured
 import pytest
 
 from rest_polymorphic.serializers import PolymorphicSerializer
+from rest_polymorphic.renderers import PolymorphicRenderer
 
 from tests.models import BlogBase, BlogOne, BlogTwo
-from tests.serializers import BlogPolymorphicSerializer
+from tests.serializers import BlogPolymorphicSerializer, BlogOneSerializer
 
 pytestmark = pytest.mark.django_db
 
@@ -153,3 +154,44 @@ class TestPolymorphicSerializer:
         err = duplicate.errors['non_field_errors']
 
         assert err == ['The fields info, about must make a unique set.']
+
+
+class TestPolymorphicRenderer:
+
+    def test_polymorphic_renderer_non_polymorphic_serializer(self):
+        data = {
+            'name': 'test-blog',
+            'slug': 'test-blog-slug',
+            'info': 'test-blog-info'
+        }
+        blog = BlogOne.objects.create(**data)
+
+        renderer = PolymorphicRenderer()
+        setattr(renderer, 'accepted_media_type', 'text/html')
+
+        non_poly_serializer = BlogOneSerializer(blog)
+        non_poly_form = renderer.render_form_for_serializer(non_poly_serializer)
+
+        poly_instance_serializer = BlogPolymorphicSerializer(blog)
+        poly_instance_form = renderer.render_form_for_serializer(poly_instance_serializer)
+
+        assert not isinstance(non_poly_form, tuple)
+        assert not isinstance(poly_instance_form, tuple)
+        for k, v in data.items():
+            assert 'name="{}"'.format(k) in poly_instance_form
+            assert 'name="{}"'.format(k) in non_poly_form
+            assert 'value="{}"'.format(v) in poly_instance_form
+            assert 'value="{}"'.format(v) in non_poly_form
+
+    def test_polymorphic_renderer(self):
+        renderer = PolymorphicRenderer()
+        setattr(renderer, 'accepted_media_type', 'text/html')
+        poly_serializer = BlogPolymorphicSerializer()
+        form = renderer.render_form_for_serializer(poly_serializer)
+        assert isinstance(form, tuple)
+        models_found = {f[0]: f[1] for f in form}
+        assert 'BlogBase' in models_found
+        assert 'BlogOne' in models_found
+        assert 'BlogTwo' in models_found
+        assert 'name="info"' not in models_found['BlogBase']
+        assert 'name="info"' in models_found['BlogOne']
